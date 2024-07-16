@@ -13,7 +13,7 @@
 Currently, autonomous vehicle technologies are rapidly developing and finding applications in various fields. Autonomous parking systems are of great importance, especially for solving the problem of finding parking spaces in crowded cities. In this project, an autonomous vehicle parking system will be designed using Jetson Nano and JetBot. The goal is to design a parking system with a vehicle that can autonomously park in a designated parking area through a mobile application.
 
 ## Features
-List the key features and functionalities of the project.
+Key features and functionalities of the project.
 - Hardware: The hardware components used (should be listed with links)
 - Operating System and packages
 - Applications 
