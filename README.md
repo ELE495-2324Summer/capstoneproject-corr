@@ -225,9 +225,7 @@ If you have a mobile application, follow these steps to set it up:
 If you encounter any issues during installation or setup, refer to the troubleshooting section in the documentation or check the project's issue tracker on GitHub.
 
 ## Usage
-
-bash
-# Example commands
+```bash
 ssh -x jetbot@192.168.55.1 #Jetson Nano must be connected to PC with USB
 #Then, you must sign in with password which is 'jetbot'.
 sudo nmcli device wifi connect 'SSID' password 'password' #And, you are ready for wireless connection
@@ -235,7 +233,7 @@ cd jetbot/notebooks/basic_motion
 python3 app.py #It starts flask server to communicate mobil app between JetBot
 #Then, You should open a new command prompt, You should repeat the steps above except wifi connetion
 python3 kirmiziya_girme.py #it start the main code, Finally, you are ready to go.
-
+```
 ## Screenshots
 Include screenshots of the project in action to give a visual representation of its functionality. You can also add videos of running project to YouTube and give a reference to it here. 
 
