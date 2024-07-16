@@ -55,7 +55,7 @@ The project runs on the NVIDIA Jetson Nano, which uses the Ubuntu-based JetPack 
 
   - **Integration with JetBot**: The predictions from the model are integrated into the JetBot's control logic. Based on the recognized digits, the JetBot makes real-time decisions for navigation and parking. This integration demonstrates how PyTorch models can be effectively used in robotic applications to enhance autonomous functionalities.
 
-Overall, PyTorch provides a robust and flexible framework for developing and deploying machine learning models, and its use in this project showcases its capabilities in a real-world application involving image recognition and robotic control.
+- Overall, PyTorch provides a robust and flexible framework for developing and deploying machine learning models, and its use in this project showcases its capabilities in a real-world application involving image recognition and robotic control.
 
 - GStreamer   : GStreamer is a pipeline-based multimedia framework used to handle video streams. In this project, GStreamer is utilized to capture video input from a camera and process it in real-time.
 ### Applications 
