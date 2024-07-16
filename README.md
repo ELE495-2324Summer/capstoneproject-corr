@@ -26,19 +26,19 @@ Key features and functionalities of the project.
 The project runs on the NVIDIA Jetson Nano, which uses the Ubuntu-based JetPack operating system. The key packages and libraries used include:
 - JetPack SDK : Provides a full development environment for AI applications.
 - Python      : The programming language used for the project scripts. The following Python libraries and packages are utilized in the project;
-    cv2 (OpenCV): Used for video capture and image processing.
-    time: Used for handling timing operations.
-    math: Provides mathematical functions.
-    jetbot: Specific library for controlling the JetBot.
-    os: Used for interacting with the operating system.
-    numpy: A fundamental package for scientific computing with Python.
-    torch: An open-source machine learning library used for developing the digit recognition model.
-    torch.nn: Used for constructing neural networks.
-    torch.nn.functional: Provides additional functionalities for neural networks.
-    torchvision.transforms: Used for image transformations.
-    PIL (Pillow): Used for image processing.
-    requests: Allows sending HTTP requests.
-    json: Used for handling JSON data.
+  - **cv2 (OpenCV)**: Used for video capture and image processing.
+  - **time**: Used for handling timing operations.
+  - **math**: Provides mathematical functions.
+  - **jetbot**: Specific library for controlling the JetBot.
+  - **os**: Used for interacting with the operating system.
+  - **numpy**: A fundamental package for scientific computing with Python.
+  - **torch**: An open-source machine learning library used for developing the digit recognition model.
+  - **torch.nn**: Used for constructing neural networks.
+  - **torch.nn.functional**: Provides additional functionalities for neural networks.
+  - **torchvision.transforms**: Used for image transformations.
+  - **PIL (Pillow)**: Used for image processing.
+  - **requests**: Allows sending HTTP requests.
+  - **json**: Used for handling JSON data.
 - PyTorch     : An open-source machine learning library used for developing the digit recognition model.
 - GStreamer   : A pipeline-based multimedia framework used to handle video streams.
 ### Applications 
