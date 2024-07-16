@@ -39,7 +39,24 @@ The project runs on the NVIDIA Jetson Nano, which uses the Ubuntu-based JetPack 
   - **PIL (Pillow)**: Used for image processing.
   - **requests**: Allows sending HTTP requests.
   - **json**: Used for handling JSON data.
-- PyTorch     : An open-source machine learning library used for developing the digit recognition model.
+- PyTorch: PyTorch is an open-source machine learning library used for developing the digit recognition model in this project. The project utilizes PyTorch for several key tasks, including loading a pre-trained model, transforming images, and running inference. Here’s a detailed explanation of these tasks:
+
+  - **Model Loading**: The project uses PyTorch to load a pre-trained model. This is done using the `torch.jit.load` function, which allows the model to be loaded in a serialized format, making it suitable for production deployment. Once loaded, the model is set to evaluation mode with `model.eval()`. This is important as it disables certain layers like dropout and batch normalization, which are only needed during training.
+
+  - **Image Transformations**: Before feeding images into the model, they must be preprocessed and transformed. This involves several steps:
+    - **Grayscale Conversion**: Images are converted to grayscale to reduce complexity and focus on essential features.
+    - **Resizing**: Images are resized to a fixed size that the model expects.
+    - **Tensor Conversion**: Images are converted into PyTorch tensors, the format required for model input.
+    - **Normalization**: Image data is normalized to ensure it has a consistent mean and standard deviation, which helps in achieving better model performance.
+
+  - **Image Preprocessing Function**: A specific function is used to preprocess the images captured from the camera. This function handles converting the image to grayscale, applying a binary threshold to highlight key features, converting it to a suitable format, and then applying the predefined transformations. This step is crucial for ensuring that the images fed into the model are in the correct format and contain the necessary information for accurate predictions.
+
+  - **Model Inference**: During inference, the preprocessed image tensor is fed into the model to obtain predictions. The inference process is run within a `torch.no_grad()` context to disable gradient calculations, which are unnecessary for inference and help in reducing computational overhead and memory usage. The model outputs probabilities for each class (digit), from which the most probable class is selected.
+
+  - **Integration with JetBot**: The predictions from the model are integrated into the JetBot's control logic. Based on the recognized digits, the JetBot makes real-time decisions for navigation and parking. This integration demonstrates how PyTorch models can be effectively used in robotic applications to enhance autonomous functionalities.
+
+Overall, PyTorch provides a robust and flexible framework for developing and deploying machine learning models, and its use in this project showcases its capabilities in a real-world application involving image recognition and robotic control.
+
 - GStreamer   : A pipeline-based multimedia framework used to handle video streams.
 ### Applications 
 ### Services 
