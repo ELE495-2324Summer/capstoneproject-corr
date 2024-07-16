@@ -59,6 +59,41 @@ The project runs on the NVIDIA Jetson Nano, which uses the Ubuntu-based JetPack 
 
 - GStreamer   : GStreamer is a pipeline-based multimedia framework used to handle video streams. In this project, GStreamer is utilized to capture video input from a camera and process it in real-time.
 ### Applications 
+1. **Digit Recognition**:
+    - **Purpose**: The primary application of this project is to recognize digits from a live camera feed.
+    - **Implementation**:
+        - The JetBot captures video frames using a camera module.
+        - Each frame is preprocessed and fed into a pre-trained PyTorch model.
+        - The model predicts the digit in the frame, which can be used for various decision-making tasks.
+    - **Usage**: This application can be used in scenarios where real-time digit recognition is needed, such as reading meter readings, recognizing numbers on signs, or any other application requiring digit identification.
+
+2. **Color Detection**:
+    - **Purpose**: To detect specific colors in the environment, specifically the color red.
+    - **Implementation**:
+        - The TCS3200 color sensor is used to detect the color red.
+        - The sensor data is processed to determine the presence and intensity of the color.
+    - **Usage**: This application can be used in scenarios such as line following robots, sorting systems in factories, or any other application where color detection is required.
+
+3. **Real-time Video Processing**:
+    - **Purpose**: To handle and process live video streams for real-time applications.
+    - **Implementation**:
+        - GStreamer is used to set up a pipeline for capturing video input from the camera.
+        - The video frames are then processed using OpenCV for image processing tasks.
+    - **Usage**: This enables the JetBot to process and analyze video in real-time, making it suitable for applications like surveillance, navigation, and object tracking.
+
+4. **Remote Monitoring and Control**:
+    - **Purpose**: To allow remote control and monitoring of the JetBot over a network.
+    - **Implementation**:
+        - The WiFi module provides wireless connectivity.
+        - Flask-based web services handle communication between the JetBot and remote clients.
+    - **Usage**: This application can be used for remote inspection, teleoperation, and data collection, allowing users to control and monitor the JetBot from a distance.
+
+5. **Autonomous Navigation**:
+    - **Purpose**: To enable the JetBot to navigate autonomously using visual cues and sensor data.
+    - **Implementation**:
+        - The JetBot uses the digit recognition model and color detection to make navigation decisions.
+        - A PID controller is implemented for precise motor control based on sensor inputs.
+    - **Usage**: This allows the JetBot to move through environments without human intervention, making it useful for applications in exploration, search and rescue, and automated delivery.
 ### Services 
 
 ## Installation
