@@ -57,7 +57,7 @@ The project runs on the NVIDIA Jetson Nano, which uses the Ubuntu-based JetPack 
 
 Overall, PyTorch provides a robust and flexible framework for developing and deploying machine learning models, and its use in this project showcases its capabilities in a real-world application involving image recognition and robotic control.
 
-- GStreamer   : A pipeline-based multimedia framework used to handle video streams.
+- GStreamer   : GStreamer is a pipeline-based multimedia framework used to handle video streams. In this project, GStreamer is utilized to capture video input from a camera and process it in real-time.
 ### Applications 
 ### Services 
 
