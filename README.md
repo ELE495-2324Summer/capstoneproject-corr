@@ -94,6 +94,14 @@ The project runs on the NVIDIA Jetson Nano, which uses the Ubuntu-based JetPack 
         - The JetBot uses the digit recognition model and color detection to make navigation decisions.
         - A PID controller is implemented for precise motor control based on sensor inputs.
     - **Usage**: This allows the JetBot to move through environments without human intervention, making it useful for applications in exploration, search and rescue, and automated delivery.
+    - 
+6. **Mobile Application**:
+    - **Purpose**: To provide a user-friendly interface for controlling and monitoring the JetBot.
+    - **Implementation**:
+        - Developed a mobile application that connects to the JetBot via the WiFi module.
+        - The app allows users to view the live video feed, send control commands, and monitor sensor data.
+    - **Usage**: Enhances the usability of the JetBot by providing an intuitive interface for remote operation and real-time monitoring.
+
 ### Services 
 
 ## Installation
