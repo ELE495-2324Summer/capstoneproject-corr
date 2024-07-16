@@ -38,7 +38,6 @@ The project runs on the NVIDIA Jetson Nano, which uses the Ubuntu-based JetPack 
   - **torchvision.transforms**: Used for image transformations.
   - **PIL (Pillow)**: Used for image processing.
   - **requests**: Allows sending HTTP requests.
-  - **json**: Used for handling JSON data.
 - PyTorch: PyTorch is an open-source machine learning library used for developing the digit recognition model in this project. The project utilizes PyTorch for several key tasks, including loading a pre-trained model, transforming images, and running inference. Here’s a detailed explanation of these tasks:
 
   - **Model Loading**: The project uses PyTorch to load a pre-trained model. This is done using the `torch.jit.load` function, which allows the model to be loaded in a serialized format, making it suitable for production deployment. Once loaded, the model is set to evaluation mode with `model.eval()`. This is important as it disables certain layers like dropout and batch normalization, which are only needed during training.
