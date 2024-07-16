@@ -192,7 +192,7 @@ Install the necessary dependencies by running the following commands:
 3. **Set Up Flask Server**:
     - Navigate to the server directory and run the Flask server.
     ```bash
-    cd server
+    cd jetbot/notebooks/basic_motion
     python3 app.py
     ```
 
@@ -200,7 +200,7 @@ Install the necessary dependencies by running the following commands:
     - Ensure all hardware components are connected and powered on.
     - Run the main script to start the JetBot application.
     ```bash
-    python3 main.py
+    python3 kirmiziya_girme.py
     ```
 
 ### Mobile Application
@@ -214,15 +214,27 @@ If you have a mobile application, follow these steps to set it up:
 2. **Connect to JetBot**:
     - Ensure your mobile device is connected to the same WiFi network as the JetBot.
     - Open the app and follow the instructions to connect to the JetBot.
+    - Write your IP address and connect to JetBot
+3. **Useage of App**:
+    - Send your plate number which you want to park
+    - Then, wait for the process
+    - Repeat the steps
 
 ### Troubleshooting
 
 If you encounter any issues during installation or setup, refer to the troubleshooting section in the documentation or check the project's issue tracker on GitHub.
 
-
-
 ## Usage
-Provide instructions and examples on how to use the project. Include code snippets or screenshots where applicable.
+
+bash
+# Example commands
+ssh -x jetbot@192.168.55.1 #Jetson Nano must be connected to PC with USB
+#Then, you must sign in with password which is 'jetbot'.
+sudo nmcli device wifi connect 'SSID' password 'password' #And, you are ready for wireless connection
+cd jetbot/notebooks/basic_motion
+python3 app.py #It starts flask server to communicate mobil app between JetBot
+#Then, You should open a new command prompt, You should repeat the steps above except wifi connetion
+python3 kirmiziya_girme.py #it start the main code, Finally, you are ready to go.
 
 ## Screenshots
 Include screenshots of the project in action to give a visual representation of its functionality. You can also add videos of running project to YouTube and give a reference to it here. 
