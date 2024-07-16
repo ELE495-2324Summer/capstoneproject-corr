@@ -14,7 +14,13 @@ Currently, autonomous vehicle technologies are rapidly developing and finding ap
 
 ## Features
 Key features and functionalities of the project.
-- Hardware: The hardware components used (should be listed with links)
+### Hardware:
+- JetBot: A small, affordable AI robot built around the NVIDIA Jetson Nano
+- NVIDIA Jetson Nano: A small, powerful computer for AI development
+- CSI Camera Module: Used for capturing video feed for digit recognition
+- TCS3200 Color Sensor: Used to detect the color red
+
+
 - Operating System and packages
 - Applications 
 - Services 
