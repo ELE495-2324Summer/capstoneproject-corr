@@ -181,8 +181,7 @@ Install the necessary dependencies by running the following commands:
 
 1. **Clone the Repository**:
     ```bash
-    git clone https://github.com/your-repo/your-project.git
-    cd your-project
+    git clone https://github.com/ELE495-2324Summer/capstoneproject-corr.git
     ```
 
 2. **Load the Pre-trained Model**:
