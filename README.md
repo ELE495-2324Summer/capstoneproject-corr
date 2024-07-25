@@ -233,7 +233,7 @@ python3 app.py #It starts flask server to communicate mobil app between JetBot
 python3 kirmiziya_girme.py #it start the main code, Finally, you are ready to go.
 ```
 ## Screenshots
-![Final Appearance of the JetBot](jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.43.jpeg)
+<img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.43.jpeg" alt="Final Appearance of the JetBot" width="300"/>
 
 
 [Contributor 1](https://github.com/user1)
