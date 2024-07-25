@@ -235,10 +235,29 @@ python3 kirmiziya_girme.py #it start the main code, Finally, you are ready to 
 ## Screenshots
 Demo video of the project : https://youtu.be/gcM3b53lbOA?si=eWYQlFhmbiz2kLak
 
-<img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.43.jpeg" alt="Final Appearance of the JetBot" width="300"/>
-<img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.43%20(1).jpeg" alt="Final Appearance of the JetBot" width="300"/>
-<img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.44%20(1).jpeg" alt="Final Appearance of the JetBot" width="300"/>
-<img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.44.jpeg" alt="Final Appearance of the JetBot" width="300"/>
+<table>
+  <tr>
+    <td>
+      <img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.43.jpeg" alt="Final Appearance of the JetBot" width="300"/>
+      <p>Final Appearance of the JetBot 1</p>
+    </td>
+    <td>
+      <img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.43%20(1).jpeg" alt="Final Appearance of the JetBot" width="300"/>
+      <p>Final Appearance of the JetBot 2</p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.44%20(1).jpeg" alt="Final Appearance of the JetBot" width="300"/>
+      <p>Final Appearance of the JetBot 3</p>
+    </td>
+    <td>
+      <img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.44.jpeg" alt="Final Appearance of the JetBot" width="300"/>
+      <p>Final Appearance of the JetBot 4</p>
+    </td>
+  </tr>
+</table>
+
 
 
 
