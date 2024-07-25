@@ -253,7 +253,7 @@ Demo video of the project : https://youtu.be/gcM3b53lbOA?si=eWYQlFhmbiz2kLak
     </td>
     <td>
       <img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.44.jpeg" alt="Final Appearance of the JetBot" width="300"/>
-      <p>Parking Operation Completed! 4</p>
+      <p>Parking Operation Completed!</p>
     </td>
   </tr>
 </table>
