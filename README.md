@@ -233,7 +233,13 @@ python3 app.py #It starts flask server to communicate mobil app between JetBot
 python3 kirmiziya_girme.py #it start the main code, Finally, you are ready to go.
 ```
 ## Screenshots
+Demo video of the project : https://youtu.be/gcM3b53lbOA?si=eWYQlFhmbiz2kLak
+
 <img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.43.jpeg" alt="Final Appearance of the JetBot" width="300"/>
+<img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.43%20(1).jpeg" alt="Final Appearance of the JetBot" width="300"/>
+<img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.44%20(1).jpeg" alt="Final Appearance of the JetBot" width="300"/>
+<img src="jetbot%20fotolar/WhatsApp%20Image%202024-07-25%20at%2015.42.44.jpeg" alt="Final Appearance of the JetBot" width="300"/>
+
 
 
 [Contributor 1](https://github.com/user1)
