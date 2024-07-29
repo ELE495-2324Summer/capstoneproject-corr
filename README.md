@@ -230,7 +230,7 @@ sudo nmcli device wifi connect 'SSID' password 'password' #And, you are ready fo
 cd jetbot/notebooks/basic_motion
 python3 app.py #It starts flask server to communicate mobil app between JetBot
 #Then, You should open a new command prompt, You should repeat the steps above except wifi connetion
-python3 kirmiziya_girme.py #it start the main code, Finally, you are ready to go.
+python3 main.py.py #it start the main code, Finally, you are ready to go.
 ```
 ## Screenshots
 Demo video of the project : https://youtu.be/gcM3b53lbOA?si=eWYQlFhmbiz2kLak
