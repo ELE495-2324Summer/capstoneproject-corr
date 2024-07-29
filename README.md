@@ -198,7 +198,7 @@ Install the necessary dependencies by running the following commands:
     - Ensure all hardware components are connected and powered on.
     - Run the main script to start the JetBot application.
     ```bash
-    python3 kirmiziya_girme.py
+    python3 main.py
     ```
 
 ### Mobile Application
