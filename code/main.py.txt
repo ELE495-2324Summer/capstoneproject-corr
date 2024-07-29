@@ -1,0 +1,842 @@
+import cv2
+import time
+from math import sqrt
+from jetbot import Robot  # JetBot kütüphanesini import et
+import os
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+from PIL import Image
+import requests
+import json
+import Jetson.GPIO as GPIO
+
+# Pin numaralarını tanımlama
+TRIG = 26
+ECHO = 20
+
+# GPIO pinlerini ayarlama
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
+
+
+robot = Robot()
+robot.stop()
+
+score = 0
+park_started = 0
+measured_value = 0
+duvara_geldi_mi = 0
+flag = 0
+baslangic = 0
+ilk_rakam_yonelimi = 0
+park_started = 0
+frame_counter = 0
+red_flag = 0
+a_little_more = 0
+start_to_measure_distance = 0
+first_distance =  96
+cizgiye_basti = 0
+distance_list_index = 0 
+
+device = torch.device("cpu")
+scripted_model = torch.jit.load('70x70son.pt', map_location=device)
+scripted_model.eval()
+
+# Görüntü dönüşüm fonksiyonunu tanımlayın
+mean = 0.37
+std = 0.37
+
+#########################################################################SENSOR#########################################################################
+
+S0_sag = 9
+S1_sag = 25
+S2_sag = 12
+S3_sag = 6
+OUT_sag = 11
+S0_sol = 24
+S1_sol = 12
+S2_sol = 27
+S3_sol = 18
+OUT_sol = 17
+
+# GPIO modunu ve pinleri ayarlayın
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(S0_sag, GPIO.OUT)
+GPIO.setup(S1_sag, GPIO.OUT)
+GPIO.setup(S2_sag, GPIO.OUT)
+GPIO.setup(S3_sag, GPIO.OUT)
+GPIO.setup(OUT_sag, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(S0_sol, GPIO.OUT)
+GPIO.setup(S1_sol, GPIO.OUT)
+GPIO.setup(S2_sol, GPIO.OUT)
+GPIO.setup(S3_sol, GPIO.OUT)
+GPIO.setup(OUT_sol, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# Frekans ölçeklendirme ve filtre ayarları
+def setup_sensor(S0, S1, S2, S3):
+    GPIO.output(S0, GPIO.HIGH)  # %100 ölçeklendirme
+    GPIO.output(S1, GPIO.LOW)
+    GPIO.output(S2, GPIO.LOW)
+    GPIO.output(S3, GPIO.HIGH)
+
+# Kırmızı renk için frekans ölçümü yapacak fonksiyon
+def measure_red_frequency(S0, S1, S2, S3, OUT):
+    setup_sensor(S0, S1, S2, S3)
+    time.sleep(0.1)  # Sensörün ayarlanmasını bekleyin
+    start = time.time()
+    for _ in range(100):
+        GPIO.wait_for_edge(OUT, GPIO.FALLING)
+    end = time.time()
+    return 100 / (end - start)  # Frekansı hesaplayın
+
+# Kırmızı renk eşik değerleri
+SOL_RED_THRESHOLD = 8000
+SAG_RED_THRESHOLD = 5800
+
+def check_sensor(sensor_params, threshold):
+    red_count = 0
+    not_red_count = 0
+    frequencies = []
+    
+    for _ in range(5):
+        red_frequency = measure_red_frequency(*sensor_params)
+        frequencies.append(red_frequency)
+        
+        if red_frequency < threshold:
+            not_red_count = 0  # Red detected, reset the non-red counter
+            red_count += 1
+            if red_count >= 5:
+                return True, frequencies
+        else:
+            red_count = 0  # Red not detected, reset the red counter
+            not_red_count += 1
+            if not_red_count >= 5:
+                return False, frequencies
+        
+        time.sleep(0.01)
+    
+    return red_count >= 5, frequencies
+
+# Function to check the sensors for red detection and return results with frequencies
+def check_sensors():
+    sol_sensor_params = (S0_sol, S1_sol, S2_sol, S3_sol, OUT_sol)
+    sag_sensor_params = (S0_sag, S1_sag, S2_sag, S3_sag, OUT_sag)
+    
+    try:
+        while True:
+            sol_red_detected, sol_frequencies = check_sensor(sol_sensor_params, SOL_RED_THRESHOLD)
+            sag_red_detected, sag_frequencies = check_sensor(sag_sensor_params, SAG_RED_THRESHOLD)
+            print("sol : ",sol_frequencies, "sag : ",sag_frequencies)
+            if sol_red_detected and not sag_red_detected:
+                return 0  # SOL
+            elif sag_red_detected and not sol_red_detected:
+                return 1  # SAG
+            elif sol_red_detected and sag_red_detected:
+                return 2  # IKISI DE
+            else:
+                return 3  # HICBIRI
+            wait_for_duration(0.01)
+            # Wait 0.5 seconds between each measurement
+    except KeyboardInterrupt:
+        print("Program sonlandırıldı.")
+
+
+
+
+
+#########################################################################SENSOR#########################################################################
+
+
+
+transform = transforms.Compose([
+    transforms.Grayscale(num_output_channels=3),  # 3 kanallı gri tonlama
+    transforms.Resize((70, 70)),  # 70x70 boyutuna yeniden boyutlandırma
+    transforms.ToTensor(),
+    transforms.Normalize((mean,), (std,))
+])
+
+def measure_distance():
+    distances = []
+    for _ in range(10):
+        # Trig pinini düşük yap ve 2 mikro saniye bekle
+        GPIO.output(TRIG, GPIO.LOW)
+        time.sleep(2e-6)
+
+        # Trig pinini yüksek yap ve 10 mikro saniye bekle
+        GPIO.output(TRIG, GPIO.HIGH)
+        time.sleep(10e-6)
+        GPIO.output(TRIG, GPIO.LOW)
+
+        # Echo pininde sinyalin gelmesini bekle
+        pulse_start = None
+        pulse_end = None
+
+        start_time = time.time()
+        while GPIO.input(ECHO) == 0:
+            pulse_start = time.time()
+            if pulse_start - start_time > 0.1:  # 100ms içinde sinyal gelmezse çık
+                break
+        
+        if pulse_start is not None:
+            start_time = time.time()
+            # Echo pininde sinyalin bitmesini bekle
+            while GPIO.input(ECHO) == 1:
+                pulse_end = time.time()
+                if pulse_end - start_time > 0.1:  # 100ms içinde sinyal bitmezse çık
+                    break
+
+        if pulse_start is not None and pulse_end is not None:
+            # Sinyal süresini hesapla
+            pulse_duration = pulse_end - pulse_start
+
+            # Mesafeyi hesapla (Ses hızını 34300 cm/s olarak alıyoruz)
+            distance = pulse_duration * 17150
+            distance = round(distance, 2)
+
+            distances.append(distance)
+        else:
+            print("Measurement failed. Retrying...")
+            continue
+        
+          # Her ölçüm arasında kısa bir bekleme süresi (opsiyonel)
+
+    if distances:
+        average_distance = sum(distances) / len(distances)
+        return round(average_distance, 2)
+    else:
+        return None
+
+def transform_image(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, binary = cv2.threshold(gray, 65, 255, cv2.THRESH_BINARY_INV)
+    binary_rgb = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)  # 3 kanallı gri tonlama
+    pil_image = Image.fromarray(binary_rgb)
+    tensor = transform(pil_image).to(device)
+    return tensor.unsqueeze(0)
+
+def plaka_tanima(frame):
+    tensor_image = transform_image(frame)
+    with torch.no_grad():
+        output = scripted_model(tensor_image)
+        probs, indices = torch.topk(output, 1)
+        probs = torch.exp(probs)
+        probs, indices = probs.cpu().numpy()[0], indices.cpu().numpy()[0]
+    return indices[0], probs[0]
+
+def send_number_to_server(number):
+    url = "http://192.168.21.1:5000/send_number"
+    payload = {
+        "number": number
+    }
+
+    try:
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            print("Sayı başarıyla gönderildi.")
+        else:
+            print("Sayı gönderme hatası:", response.status_code)
+    except Exception as e:
+         print("Bir hata oluştu:", str(e))
+send_number_to_server(42)       
+def get_plate_from_server():
+    url = "http://192.168.21.1:5000/get_plate"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            plate_str = data.get('plate', '1111')  # Varsayılan olarak '0' kullanılır
+            try:
+                plate = int(plate_str)  # Değeri tam sayıya dönüştür
+                print("Alınan plaka (int):", plate)
+            except ValueError:
+                print("Plaka değeri bir tam sayı değil:", plate_str)
+        else:
+            print("Plaka alma hatası:", response.status_code)
+    except Exception as e:
+        print("Bir hata oluştu:", str(e))
+    return plate
+def update_park_status(status):
+    url = "http://192.168.21.1:5000/park_complete"  # Flask sunucusunun park durumu güncelleme endpoint'i
+    payload = {
+        "status": status  # Gönderilecek park durumu
+    }
+
+    try:
+        response = requests.post(url, json=payload)  # POST isteği gönder
+        if response.status_code == 200:  # Başarılı yanıt kontrolü
+            print("Park durumu başarıyla güncellendi.")
+        else:
+            print("Park durumu güncelleme hatası:", response.status_code)  # Hata durumunda yanıt kodunu yazdır
+    except Exception as e:
+        print("Bir hata oluştu:", str(e))  # İstisna durumunda hata mesajını yazdır
+
+def update_score(score):
+    url = "http://192.168.21.1:5000/score"
+    payload = {
+        "score": score
+    }
+    try:
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            print(f"Skor '{score}' olarak güncellendi.")
+        else:
+            print("Skor güncelleme hatası:", response.status_code)
+    except Exception as e:
+        print("Bir hata oluştu:", str(e))
+update_score(0)
+# Test için park durumunu güncelle
+
+
+
+class PIDController:
+    def __init__(self, Kp, Ki, Kd, integral_limit=100):
+        self.Kp = Kp
+        self.Ki = Ki
+        self.Kd = Kd
+        self.prev_error = 0
+        self.integral = 0
+        self.integral_limit = integral_limit
+
+    def update(self, setpoint, measured_value):
+        error = setpoint - measured_value
+        self.integral += error
+        # Integral windup'ı önlemek için sınır koyma
+        if self.integral > self.integral_limit:
+            self.integral = self.integral_limit
+        elif self.integral < -self.integral_limit:
+            self.integral = -self.integral_limit
+        derivative = error - self.prev_error
+        self.prev_error = error
+        # PID denklemi
+        output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
+        return output
+
+def move_for_duration(robot, left_speed, right_speed, duration):
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        robot.left(left_speed)
+        robot.right(right_speed)
+    robot.stop()
+
+def wait_for_duration(duration):
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        pass
+
+def turn_back(robot):
+    move_for_duration(robot, 0.28, -0.28, 0.483)
+    wait_for_duration(0.5)
+
+def turn_left(robot,time,a):
+    i = 0
+    while(i < a):
+        move_for_duration(robot, 0.18, -0.18, time/11)
+        wait_for_duration(0.1)
+        i = i+1
+    robot.stop()
+
+def turn_right_9(robot):
+    move_for_duration(robot, -0.28, 0.28, 0.268)
+    wait_for_duration(0.5)
+    
+def turn_right(robot):
+    move_for_duration(robot, -0.28, 0.28, 0.253)
+    wait_for_duration(0.5)
+
+def go_forward(robot):
+    move_for_duration(robot, 0.091, 0.0907, 2.25)
+    wait_for_duration(0.5)
+
+def approach_digit(frame):
+    # Rakamın boyutuna göre durma
+    digit_size = np.sum(frame[:, :, 0] == 255)
+    print("digit_size = ", digit_size)
+    if digit_size > 5000:  # Bu değer, deneme yanılma ile ayarlanabilir
+        robot.stop()
+        print("Hedefe ulaşıldı.")
+        update_park_status("complete")
+        return -1
+    return 0
+k = 0
+def black_to_white(image, robot):
+    height, width = image.shape[:2]
+    
+    # Alt ve yanlardan %20 kes
+    top = int(0.1 * height)
+    bottom = int(0.8 * height)
+    left = int(0.3 * width)
+    right = int(0.7 * width)
+    cropped_image = image[top:bottom, left:right]
+    
+    # Görüntüyü gri tonlamaya çevir
+    gray = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
+
+    # Siyah renk aralığını belirleme
+    _, mask = cv2.threshold(gray, 65, 255, cv2.THRESH_BINARY_INV)
+
+    # Siyah renkleri beyazlaştırma ve diğer renkleri karartma
+    result = cv2.bitwise_and(cropped_image, cropped_image, mask=mask)
+    result[mask == 0] = [0, 0, 0]  # Siyah arka plan
+    result[mask != 0] = [255, 255, 255]  # Beyaz
+
+    # Beyaz noktaların yoğunluk ortalamasını hesaplama
+    moments = cv2.moments(mask)
+    if moments["m00"] != 0:
+        cx = int(moments["m10"] / moments["m00"])
+        cy = int(moments["m01"] / moments["m00"])
+    else:
+        cx, cy = 0, 0
+
+    # Yoğunluk ortalaması noktasını işaretleme
+    cv2.circle(result, (cx, cy), 5, (0, 0, 255), -1)
+
+    # Kameranın orta noktasını hesaplama ve işaretleme
+    center_x = (right - left) // 2
+    center_y = cy  # Yüksekliği kırmızı nokta ile aynı yapıyoruz
+    cv2.circle(result, (center_x, center_y), 5, (0, 255, 0), -1)
+
+    # Deviation hesaplama (x ekseninde)
+    deviation = center_x - cx
+
+    # Siyah piksel sayısını hesaplama
+    black_pixel_count = np.sum(mask == 255)
+
+    # Sonuç görüntüsünü dosyaya kaydetme
+    if deviation < 10:
+        control_output = 1.4 * deviation
+    elif 10 < deviation and deviation < 20:
+        control_output = 3 * deviation
+    else:
+        control_output = 4 * deviation
+    
+    return control_output, black_pixel_count
+        
+def check_white_pixels(processed_image):
+    # Beyaz piksel olup olmadığını kontrol et
+    if np.sum(processed_image == 255) == 0:
+        return 1  # Flag bitini 1 yap
+    else:
+        return 0  # Flag bitini 0 yap
+
+def siyah_algilayici(image):
+    # Siyah ve tonları (gri dahil) beyaza, diğer renkler siyaha dönüşecek
+    lower_gray = np.array([0, 0, 0])
+    upper_gray = np.array([100, 100, 100])
+
+    # Maskeyi oluştur
+    mask = cv2.inRange(image, lower_gray, upper_gray)
+
+    # Maskeyi kullanarak siyah ve gri tonlarını beyaza çevir
+    processed_image = np.zeros_like(image)
+    processed_image[mask == 255] = [255, 255, 255]
+    a = check_white_pixels(processed_image)
+    return a
+
+# Initialize PID controller with specific gains
+pid = PIDController(Kp=0.15, Ki=0.1, Kd=0.05, integral_limit=100)
+
+# Klasör oluşturma
+output_dir = 'abc'
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+# GStreamer pipeline for the camera
+gst_pipeline = (
+    "nvarguscamerasrc ! "
+    "video/x-raw(memory:NVMM), width=640, height=480, format=NV12, framerate=30/1 ! "
+    "nvvidconv flip-method=2 ! "
+    "video/x-raw, width=640, height=480, format=BGRx ! "
+    "videoconvert ! "
+    "video/x-raw, format=BGR ! appsink"
+)
+
+# OpenCV VideoCapture object with GStreamer pipeline
+camera = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
+start_time = time.time()
+"""
+while time.time() - start_time < 5:
+    ret,frame = camera.read()
+"""
+image_counter = 0
+
+def get_jetbot_position(ret, frame):
+    global frame_counter
+    global image_counter
+
+    if not ret:
+        return 0  # Kameradan görüntü alınamazsa merkezi döndür
+
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, thresh = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
+
+    height, width = thresh.shape
+    center_of_frame = width / 2
+
+    # Görüntüyü sağdan ve soldan %20 kes
+
+    # Üstten %20'sini karart
+    crop_height = int(height * 0.35)
+    thresh[:crop_height, :] = 0
+
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        M = cv2.moments(largest_contour)
+        if M['m00'] != 0:
+            cx = int(M['m10'] / M['m00'])
+        else:
+            cx = center_of_frame
+    else:
+        cx = center_of_frame
+
+    deviation = cx - center_of_frame -25
+    #print("DEV : ",deviation)
+    if deviation < 30 and deviation > -30:
+        return deviation * 1
+    elif deviation < 100 and deviation > -100:
+        return deviation * 2
+    else:
+        return deviation * 4
+
+    
+def adjust_jetbot_motors_red(control_output):
+    base_speed = 0.11  # JetBot'un temel hızı
+    
+    if control_output == 0:
+        left_motor_speed = base_speed
+        right_motor_speed = base_speed
+    else:
+        isaret = abs(control_output) / control_output
+        left_motor_speed = (base_speed - isaret * sqrt(abs(control_output)) / 1000.0)
+        right_motor_speed = (base_speed + isaret * sqrt(abs(control_output)) / 1000.0)
+
+    left_motor_speed = max(min(left_motor_speed, 0.5), -0.5)
+    right_motor_speed = max(min(right_motor_speed, 0.5), -0.5)
+
+    robot.set_motors(left_motor_speed, right_motor_speed)
+
+def adjust_jetbot_motors(control_output, speed):
+    global duvara_geldi_mi
+    global flag
+    base_speed = speed  # JetBot'un temel hızı
+
+    if duvara_geldi_mi == 1:
+        # Duvara çarptıysa 180 derece dön
+        turn_back(robot)
+        flag = 1
+    else:
+        if control_output == 0:
+            right_motor_speed = base_speed
+            left_motor_speed = base_speed
+        else:
+            isaret = abs(control_output) / control_output
+            left_motor_speed = (base_speed + isaret * sqrt(abs(control_output)) / 1000.0 + 0.007)
+            right_motor_speed = (base_speed - isaret * sqrt(abs(control_output)) / 1000.0)
+
+        left_motor_speed = max(min(left_motor_speed, 0.5), -0.5)
+        right_motor_speed = max(min(right_motor_speed, 0.5), -0.5)
+
+        robot.set_motors(left_motor_speed, right_motor_speed)
+
+frame_counter = 0
+
+def follow_line_for_duration(duration, st):
+    liste = [97,79,62.3,44.8,30]
+    start_time = time.time()
+    frame_counter = 0
+    global flag
+    global camera
+    global duvara_geldi_mi
+    global ilk_rakam_yonelimi
+    global baslangic
+    global measured_value
+    global first_distance
+    global start_to_measure_distance
+    global distance_list_index
+    while time.time() - start_time < duration:
+        if(flag == 1):
+            camera = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
+            flag = 0
+        ret, frame = camera.read()
+        setpoint = 0  # Siyah çizginin merkezi
+        if(st == "black"):
+            measured_value = get_jetbot_position(ret, frame)  # JetBot'un mevcut konumu
+            if(start_to_measure_distance == 1):
+                distance = measure_distance()
+                print(distance)  
+                if(distance < liste[distance_list_index]):
+                    distance_list_index += 1
+                    print("durdum")
+                    return 0
+
+            duvara_geldi_mi = siyah_algilayici(frame)
+            if(duvara_geldi_mi == 1):
+                camera.release()
+                baslangic = 1
+                start_to_measure_distance = 1
+                flag = 1
+                adjust_jetbot_motors(measured_value, 0.12)  
+                return 0
+            adjust_jetbot_motors(measured_value, 0.12)
+            if(baslangic ==1):
+                return 50
+
+        
+        elif(st == "red"):
+            measured_value = black_to_white(frame, robot)
+
+            if measured_value != -1:
+                adjust_jetbot_motors(measured_value, 0.1)
+
+            if measured_value == -1:
+                break
+
+def follow_line_for_duration_red(duration):
+    start_time = time.time()
+    global measured_value
+    global frame_counter
+    global flag
+    global camera
+    global duvara_geldi_mi
+    global score
+    while time.time() - start_time < duration:
+
+        
+        if flag == 1:
+            camera = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
+            flag = 0
+        ret, frame = camera.read()
+        measured_value, black_pixel_count = black_to_white(frame, robot)
+        
+        if duvara_geldi_mi == 1:
+            camera.release()
+            flag = 1
+        
+        if measured_value != -1:
+            adjust_jetbot_motors_red(measured_value)
+
+        
+        if measured_value == -1:
+            break
+        
+        frame_counter += 1
+pid = PIDController(Kp=0.15, Ki=0.1, Kd=0.05, integral_limit=100)
+
+# Örnek kullanım: siyah çizgiyi 10 saniye boyunca takip et
+i = 0
+def process_and_crop_image_from_frame(frame, threshold_value):
+    # Görüntüyü gri tonlamaya dönüştür
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Siyah pikselleri beyaz yap, diğer her şeyi siyah yap
+    _, binary = cv2.threshold(gray, 65, 255, cv2.THRESH_BINARY_INV)
+
+    # Görüntü boyutlarını al
+    height, width = binary.shape
+
+    # %25 oranında kırpma işlemi
+    crop_top = int(height * 0.25)
+    crop_bottom = int(height * 0.75)
+    crop_left = int(width * 0.25)
+    crop_right = int(width * 0.75)
+
+    # Görüntüyü kırp
+    cropped_image = binary[crop_top:crop_bottom, crop_left:crop_right]
+
+    # Kırpılmış görüntüdeki pikselleri topla
+    pixel_sum = np.sum(cropped_image)
+    print("Pixel Sum: ", pixel_sum)
+
+    # Belirli bir değerin altında veya üstünde olup olmadığını kontrol et
+    if pixel_sum < threshold_value:
+        return 0
+    else:
+        return 1
+def first_tilt(robot,x):
+    robot.set_motors(x*0.15,x* 0.15)
+    wait_for_duration(0.6)
+    robot.stop()
+    
+def park_etme():
+    
+    global baslangic
+    global first_distance
+    global ilk_rakam_yonelimi
+    global i
+    global start_to_measure_distance
+    global cizgiye_basti
+    global score
+    
+    while True:
+          
+        sensor_out = check_sensors()
+        if(sensor_out != 3):
+            score -= 1
+            update_score(score)
+            sensor_out = 3
+        d = measure_distance()
+          
+        b=time.time()
+        follow_line_for_duration_red(0.15)
+          
+        robot.stop()
+          #time.sleep(0.1)
+        i = i+1
+        a=time.time()
+        print(b-a)
+        if((i > 120 or (d<7)) and a_little_more == 0):
+              #robot.forward(0.13)
+              #wait_for_duration(0.4)
+            ilk_rakam_yonelimi = 0
+            baslangic = 0
+            first_distance = 94
+            start_to_measure_distance = 0
+            cizgiye_basti = 0
+            robot.stop()
+            update_park_status("complete")
+              
+            break
+                  
+a = get_plate_from_server()
+
+def run_inference():
+    i = 0
+    sayac = 0
+    evaluated_results = []
+    while True:
+        ret, frame = camera.read()
+        if not ret:
+            print("Error: Unable to capture image")
+            break
+
+        sayac += 1
+
+        if sayac % 10 == 0:
+            index, prob = plaka_tanima(frame)
+            evaluated_results.append(index)
+
+            if len(evaluated_results) == 5:
+                # En sık tekrarlanan sonucu bulma
+                unique_results = list(set(evaluated_results))
+                most_common = max(unique_results, key=evaluated_results.count)
+                
+                print(f'Predicted digit: {most_common}')
+                if(most_common == plate):
+                    first_tilt(robot,1)
+                    robot.stop()
+                    wait_for_duration(2)
+                    ret, frame = camera.read()
+                    is_valid = process_and_crop_image_from_frame(frame,95000)
+                    if(is_valid == 1):                
+                        evaluated_results = []
+                        return most_common
+                    else:
+                        first_tilt(robot,-1)
+                        wait_for_duration(2)
+
+                        return 100
+                return most_common
+
+
+    
+while True:
+    while True:
+        plate = get_plate_from_server()
+        print("İLK_RAKAM_YONELİMİ = ", ilk_rakam_yonelimi)
+        if (a != plate):
+            update_park_status("incomplete")
+            if(baslangic == 0):
+                i = 0
+                while True:
+                    i = i + 1
+                    follow_line_for_duration(100, "black")
+                    robot.stop()
+                    wait_for_duration(0.2)
+                    if(i == 1000):
+                        break
+                    if(duvara_geldi_mi == 1):
+                        break
+            elif((baslangic == 1) and (ilk_rakam_yonelimi == 0)):
+                i = 0
+                while True:
+                    x = follow_line_for_duration(0.12, "black")
+                    wait_for_duration(0.03)
+                    robot.stop()
+                    if(x == 0):
+                        break
+                #turn_left(robot,0.9,8)
+                turn_right(robot)
+                ilk_rakam_yonelimi += 1
+                if(run_inference() == plate):
+                    distance_list_index = 0
+                    park_etme()
+                    a = plate
+                    break
+                if(measured_value == -1):
+                    break
+                #turn_left(robot,0.82,8)
+                #turn_left(robot,0.82,8)
+                turn_back(robot)
+                
+                if(run_inference() == plate):
+                    distance_list_index = 0
+                    park_etme()
+                    a = plate
+                    break
+                #turn_left(robot,0.82,8)
+                turn_right(robot)
+                robot.forward(-0.15)
+                wait_for_duration(0.3)
+                ilk_rakam_yonelimi += 1
+            elif(baslangic == 1 and ilk_rakam_yonelimi < 10):
+                i = 0
+                while True:
+                    x = follow_line_for_duration(0.12, "black")
+                    wait_for_duration(0.03)
+                    robot.stop()
+                    if(x == 0):
+                        break
+                #turn_left(robot,0.9,7)
+                if(ilk_rakam_yonelimi == 6):
+                    turn_right_9(robot)
+                else:            
+                    turn_right(robot)
+                ilk_rakam_yonelimi += 1
+                if(run_inference() == plate):
+                    distance_list_index = 0
+                    park_etme()
+                    a = plate
+                    break
+
+                #turn_left(robot,0.9,7)
+                #turn_left(robot,0.9,7)
+                turn_back(robot)
+
+                if(run_inference() == plate):
+                    distance_list_index = 0
+                    park_etme()
+                    a = plate
+                    break
+                #turn_left(robot,0.9,7)
+                turn_right(robot)
+                robot.forward(-0.15)
+                wait_for_duration(0.3)
+                ilk_rakam_yonelimi += 1
+            if(ilk_rakam_yonelimi == 10):
+                print("buradayım")
+                update_park_status("not_found")
+                distance_list_index = 0
+                start_to_measure_distance= 0
+                ilk_rakam_yonelimi = 0
+                baslangic = 0
+                a = plate
+                robot.stop()
+                break
+
+robot.stop()
+camera.release()
